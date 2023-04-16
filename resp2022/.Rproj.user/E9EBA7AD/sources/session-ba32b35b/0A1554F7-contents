@@ -1,0 +1,100 @@
+#Script 3 - come to this from "visualizing_slopes2" script!
+
+#adjusting slopes by subtracting controls and factoring in all of the 
+#masses and volumes of the chambers 
+
+## Controls
+
+#Cowyard early - have to use T1 DO4 as control for all
+CY_adjearly <- earlyCYallslopes %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO4")])
+#Cowyard late - going to use each individual run's control because
+#they all look good
+#control T1 DO4, T2 DO1, T3 DO2
+CY1 <- lateCYallslopes %>%  subset(trial == "T1")%>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO4")])
+CY2 <- lateCYallslopes %>%  subset(trial == "T2") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+CY3 <- lateCYallslopes %>%  subset(trial == "T3") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO2")])
+CY_adj_all <- bind_rows(CY_adjearly, CY1, CY2, CY3)
+
+#Mattituck early - have to use T1 DO1 as control for all
+MT_adjearly <- earlyMTallslopes %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+
+#Mattituck late - control T1 DO1, T2 DO3, T3 DO4 - all look good
+MT1 <- lateMTallslopes %>%  subset(trial == "T1")%>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+MT2 <- lateMTallslopes %>%  subset(trial == "T2") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO3")])
+MT3 <- lateMTallslopes %>%  subset(trial == "T3") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO4")])
+MT_adj_all <- bind_rows(MT_adjearly, MT1, MT2, MT3)
+
+#Bullhead Bay early - have to use T1 DO2 as control for all because DO3 not working
+BH_adjearly <- earlyBHallslopes %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO2")])
+
+#Bullhead Bay late - have to use T1 DO1 for all
+BH_adjlate <- BHgoodlate %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+BH_adj_all <- bind_rows(BH_adjearly, BH_adjlate)
+
+#NW Harbor early - have to use T1 DO4 as control for all 
+NW_adjearly <- NWgood %>%
+  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO4")])
+
+#NW Harbor late - 
+NW1 <- lateNWallslopes %>%  
+  subset(trial == "T1")%>% group_by(time_code) %>% 
+  mutate(adj_slope = slope - slope[which.max(variable == "DO2")])
+NW2 <- lateNWallslopes %>%  
+  subset(trial == "T2") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO4")])
+NW3 <- lateNWallslopes %>%  
+  subset(trial == "T3") %>%  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+NW_adj_all <- bind_rows(NW_adjearly, NW1, NW2, NW3)
+
+#OP early 
+OP_adj_all <- OPgood %>%
+  group_by(time_code) %>%
+  mutate(adj_slope = slope - slope[which.max(variable == "DO1")])
+
+#merging all
+allgood2022 <- bind_rows(CY_adj_all, MT_adj_all, BH_adj_all, NW_adj_all, OP_adj_all)
+adj_slopes <- allgood2022 %>%
+  relocate(month, .after = site) %>%
+  unite("key", site:variable, remove = FALSE) 
+
+#adding in csv with scallop volumes and mass
+scallop_pp2022 <- read.csv("scallop_pp_2022_fix.csv") 
+scallop_pp2022 <- scallop_pp2022 %>%
+  mutate(site = replace(site, site == "Cow Yard", "Cowyard"))%>%
+  mutate(site = replace(site, site == "Northwest Harbor", "NWHarbor"))%>%
+  mutate(site = replace(site, site == "Orient Point", "OrientPoint"))%>%
+  relocate(Bag_no, .after = Chamber_no) %>%
+  unite("key", site:Chamber_no, remove = FALSE) %>%
+  mutate(volume_mL = as.numeric(volume_mL))%>%
+  mutate(animal_vol_L = volume_mL/1000) 
+
+#then link both dataframes based off key
+all_slopes2022 <- merge(adj_slopes, scallop_pp2022, by="key", all.x = FALSE, all.y = FALSE)
+
+#then adjusting based on volume of system and volume and weight of scallop
+all_slopes_av2022 <- all_slopes2022 %>%
+  group_by(variable, site.x, trial.x, month.x) %>%
+  mutate(sys_vol = ifelse(variable == "DO1", 1.26, 
+                          ifelse(variable == "DO2", 1.28, 
+                                 ifelse(variable == "DO3", 1.24, 1.25)))) %>%
+  mutate(O2_consumption_mg_per_g_per_hr = -adj_slope*(sys_vol-animal_vol_L)*60/dry_weight_total_g) %>%
+  mutate(average_O2_consump_mg_g_hr = mean(O2_consumption_mg_per_g_per_hr))
+#so now we have an average for each animal and controls are removed
+
+#also need to add in temperature/sal/pressure correction. how? maybe not for now
+
+#next steps are making some summary graphs
+
+# go to "initial_data_viz4.r"

@@ -1,0 +1,27 @@
+---
+title: "equations"
+author: "Jessica MacGregor"
+date: "2023-04-05"
+output: html_document
+latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+$$\begin{equation}
+  y_{ij} = (B_0 = B_{0j}) + (B_1 + B_{1j})x_i + \epsilon_i
+\end{equation}$$
+
+$$
+\begin{aligned}
+  \operatorname{average\_O2\_consump\_mg\_g\_hr}_{i}  &\sim N \left(\alpha_{j[i]} + \beta_{1}(\operatorname{DO48scale}) + \beta_{2}(\operatorname{GIscale}), \sigma^2 \right) \\
+    \alpha_{j}  &\sim N \left(\mu_{\alpha_{j}}, \sigma^2_{\alpha_{j}} \right)
+    \text{, for Chamber\_no j = 1,} \dots \text{,J}
+\end{aligned}
+$$
+

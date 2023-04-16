@@ -1,0 +1,76 @@
+# come here from adjusting_slopes3
+
+#first lets look at all data
+hist(all_slopes_av2022$O2_consumption_mg_per_g_per_hr)
+#fairly normal, 
+
+#can look at bar graphs of each animal w box plot
+#what if we ordered west to east and split up by site
+all_slopes_fix <- all_slopes_av2022 %>% 
+  rename(IDkey = 1, site = 2, month = 3, trial = 4, chamber = 5) %>%
+  select(-data, -model)
+
+#rename and refactor sites
+all_slopes_fix$trial <- fct_recode(all_slopes_fix$trial,
+                                  "Trial 1" = "T1",
+                                  "Trial 2" = "T2", 
+                                  "Trial 3" = "T3")
+
+all_slopes_fix$site <- factor(all_slopes_fix$site,
+                                    levels = c("Cowyard", "Bullhead", "Mattituck",
+                                               "NWHarbor", "OrientPoint"))
+
+
+slope_box <- ggplot(all_slopes_fix, aes(factor(trial), O2_consumption_mg_per_g_per_hr,
+                           color = chamber, fill = chamber))+
+  geom_boxplot(width=1, fill="white", outlier.shape=NA, 
+               position = position_dodge2(1, preserve = "single")) + 
+  geom_point(position=position_jitterdodge(0.05)) 
+
+slope_box + theme_classic() + facet_grid(month~site) +
+  ggtitle("Summer 2022 respirometry data") +
+  xlab("animal") + ylab("O2 consumption rate (mg/g/hr)")
+
+#average by site
+all_slopes_fix$month <- factor(all_slopes_fix$month, levels=c('earlyJuly', 'August'))
+site_box <- ggplot(all_slopes_fix, aes(site, average_O2_consump_mg_g_hr))+
+  geom_boxplot(width=0.75, fill="white", outlier.shape=NA, 
+               position = position_dodge2(1, preserve = "single")) + geom_point()
+
+site_box + theme_classic() + facet_grid(~month) +
+  ggtitle("Summer 2022 respirometry data") +
+  xlab("site") + ylab("O2 consumption rate (mg/g/hr)")
+
+#making this with DO2 removed in August
+AugDO2remove <- all_slopes_fix %>%
+  filter(month != "August" | chamber != "DO2")
+AugnoDO2site_box <- ggplot(AugDO2remove, aes(site, average_O2_consump_mg_g_hr))+
+  geom_boxplot(width=0.75, fill="white", outlier.shape=NA, 
+               position = position_dodge2(1, preserve = "single")) + geom_point()
+AugnoDO2site_box + theme_classic() + facet_grid(~month) +
+  ggtitle("Summer 2022 respirometry data") +
+  xlab("site") + ylab("O2 consumption rate (mg/g/hr)")
+#looks like same trend, maybe NW a little higher relative to Mattituck
+#why is early July so much more variable than August?
+
+
+
+
+
+#showing one site
+#Southold for example
+South <- all_slopes_fix %>%
+  filter(site == "Southold")
+South_box <- ggplot(South, aes(factor(trial), O2_consumption_mg_per_g_per_hr,
+                                        color = chamber, fill = chamber))+
+  geom_boxplot(width=1, fill="white", outlier.shape=NA, 
+               position = position_dodge2(1, preserve = "single")) + 
+  geom_point(position=position_jitterdodge(0.05)) 
+
+South_box + theme_classic() +
+  ggtitle("Southold 2021 respirometry data") +
+  xlab("animal") + ylab("O2 consumption rate (mg/g/hr)")
+
+## 
+write.csv(all_slopes_fix, "C:\\Users\\macgr\\Documents\\Stony_Brook_Masters\\Scallop_project\\resp2022\\resp2022\\all_slopes_fix.csv", row.names=FALSE)
+

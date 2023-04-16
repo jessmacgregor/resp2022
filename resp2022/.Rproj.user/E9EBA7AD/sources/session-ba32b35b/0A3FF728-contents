@@ -1,0 +1,337 @@
+#Script 2 - visualizing each site and subsetting to cut slopes
+#where something clearly went wrong
+
+#Cowyard early (T1 control = 4, T2 control = 3) use T1 DO4 for all
+#need to resubset DO1 and DO4 because lag
+#Chamber 3 not working at all- keep this in mind.DO4 good control
+CYlineearly <- allsiteslong2022 %>%
+  filter(site == "Cowyard" & month == "earlyJuly")
+CYpointearly <- subsetallsiteslong2022 %>%
+  filter(site == "Cowyard" & month == "earlyJuly")
+CYplotearly <- ggplot(CYlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = CYpointearly) +
+  facet_grid(trial~variable)
+CYplotearly
+#subset - exclude all DO3 (pump broken), 
+##exclude DO1 and DO4 because laggy
+#exclude run 1 for rest of usable slopes
+CYgoodearly <- slopes2022 %>%
+  filter(site == "Cowyard" & month == "earlyJuly" ) %>%
+  filter(variable == "DO2") %>%
+  filter(time_code != "1_10") 
+#resubsetting for laggy data for DO1 and DO4
+CYearlysub <- allsiteslong2022 %>% 
+  filter(site == "Cowyard" & month == "earlyJuly") %>%
+  filter(variable == "DO1" | variable == "DO4") %>%
+  filter(time %in% c(6.50000, 10.50000, 16.50000, 20.50000, 26.50000, 30.50000,
+                     36.50000, 40.50000, 46.50000, 50.50000, 55.50000, 60.0000 ))
+newCYplotearly <- ggplot(CYlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = CYearlysub) +
+  facet_grid(trial~variable)
+newCYplotearly
+CYnewslopes2022early <- CYearlysub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope))
+#subset - 
+#just exclude 1
+newCYgoodearly <- CYnewslopes2022early %>%
+   filter(time_code != "1_10")
+earlyCYallslopes <- rbind(newCYgoodearly, CYgoodearly)
+
+#Cowyard late (control T1 DO4, T2 DO1, T3 DO2)
+CYlinelate <- allsiteslong2022 %>%
+  filter(site == "Cowyard" & month == "August")
+CYpointlate <- subsetallsiteslong2022 %>%
+  filter(site == "Cowyard" & month == "August")
+CYplotlate <- ggplot(CYlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = CYpointlate) +
+  facet_grid(trial~variable)
+CYplotlate
+#subset -
+#T1 - exclude DO3 entirely
+#exclude T2 and T3 DO2, DO3, and DO4 bc going to use resubsetted data
+#exclude run 1 for rest of usable slopes
+CYgoodlate <- slopes2022 %>%
+  filter(site == "Cowyard" & month == "August" ) %>%
+  filter(variable != "DO3") %>%
+  filter(trial != "T2" | variable != "DO2" & variable != "DO3" & variable != "DO4") %>%
+  filter(trial != "T3" | variable != "DO2" & variable != "DO3" & variable != "DO4") %>%
+  filter(time_code != "1_10") 
+#resubsetting for laggy data during T2 and T3
+Cowlatesub <- allsiteslong2022 %>% 
+  filter(site == "Cowyard" & month == "August") %>%
+  filter(trial != "T1" & variable != "DO1") %>%
+  filter(trial != "T3" | variable != "DO1") %>%
+  filter(time %in% c(6.50000, 10.50000, 16.50000, 20.50000, 26.50000, 30.50000,
+                     36.50000, 40.50000, 46.50000, 50.50000, 55.50000, 60.5000 ))
+newCYplotlate <- ggplot(CYlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = Cowlatesub) +
+  facet_grid(trial~variable)
+newCYplotlate
+CYnewslopes2022 <- Cowlatesub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope)) 
+
+#subset - 
+#T2 get rid of DO2 3 and , 
+#T3 just keep DO3 3, keep DO4 4, 5, 6
+#get rid of all 1s
+newCYgoodlate <- CYnewslopes2022 %>%
+  filter(trial != "T2" | variable != "DO2" | time_code != "20_30" & time_code != "50_60") %>%
+  filter(trial != "T3" | variable != "DO3" | time_code == "20_30") %>%
+  filter(trial != "T3" | variable != "DO4" | time_code != "20_30" & time_code != "10_20") %>%
+  filter(time_code != "1_10") 
+#combine with other slopes
+lateCYallslopes <- rbind(newCYgoodlate, CYgoodlate)
+
+#Mattituck early  - T1 1 control, T2 3 control
+# looks like DO3 still not working, need to subset bc DO1 and DO4 are laggy
+MTlineearly <- allsiteslong2022 %>%
+  filter(site == "Mattituck" & month == "earlyJuly")
+MTpointearly <- subsetallsiteslong2022 %>%
+  filter(site == "Mattituck" & month == "earlyJuly")
+MTplotearly <- ggplot(MTlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = MTpointearly) +
+  facet_grid(trial~variable)
+MTplotearly
+
+#subset -
+#exclude all of DO1, DO3, and DO4 (DO1 and DO4 laggy will resubset below) 
+#T2 DO2 exclude run 5
+#exclude run 1 for rest of usable slopes
+Mattituckgood <- slopes2022 %>%
+  filter(site == "Mattituck" & month == "earlyJuly") %>%
+  filter(variable == "DO2") %>%
+  filter(trial != "T2" | variable != "DO2" | time_code != "40_50") %>%
+  filter(time_code != "1_10")
+
+#resubsetting for laggy data for DO1 and DO4
+MTearlysub <- allsiteslong2022 %>% 
+  filter(site == "Mattituck" & month == "earlyJuly") %>%
+  filter(variable == "DO1" | variable == "DO4") %>%
+  filter(time %in% c(6.50000, 10.50000, 16.50000, 20.50000, 26.50000, 30.50000,
+                     36.50000, 40.50000, 46.50000, 50.50000, 55.50000, 60.0000 ))
+newMTplotearly <- ggplot(MTlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = MTearlysub) +
+  facet_grid(trial~variable)
+newMTplotearly
+MTnewslopes2022early <- MTearlysub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope))
+#subset - 
+#T1 DO4 exclude 1, 2, 3
+#T2 DO4 exclude 1, 2, 3, 6
+newMTgoodearly <- MTnewslopes2022early %>%
+  filter(variable != "DO4" | trial != "T1" | time_code != "10_20" & time_code != "20_30") %>%
+  filter(variable != "DO4" | trial != "T2" | time_code != "10_20" & time_code != "20_30" & time_code != "50_60") %>%
+  filter(time_code != "1_10") 
+#combine with other slopes
+earlyMTallslopes <- rbind(newMTgoodearly, Mattituckgood)
+
+#Mattituck late (control T1 DO1, T2 DO3, T3 DO4 - all look good)
+MTlinelate <- allsiteslong2022 %>%
+  filter(site == "Mattituck" & month == "August")
+MTpointlate <- subsetallsiteslong2022 %>%
+  filter(site == "Mattituck" & month == "August")
+MTplotlate <- ggplot(MTlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = MTpointlate) +
+  facet_grid(trial~variable)
+MTplotlate
+#subset -
+#DO1 good, DO2, DO3, and DO4 laggy so resubsetting
+#exclude all 1s
+MTgoodlate <- slopes2022 %>%
+  filter(site == "Mattituck" & month == "August" ) %>%
+  filter(variable == "DO1" ) %>%
+  filter(time_code != "1_10") 
+#resubsetting for laggy data 
+Matlatesub <- allsiteslong2022 %>% 
+  filter(site == "Mattituck" & month == "August") %>%
+  filter(variable != "DO1") %>%
+  filter(time %in% c(6.50000, 10.50000, 16.50000, 20.50000, 26.50000, 30.50000,
+                     36.50000, 40.50000, 46.50000, 50.50000, 55.50000, 60.5000 ))
+newMTplotlate <- ggplot(MTlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = Matlatesub) +
+  facet_grid(trial~variable)
+newMTplotlate
+MTnewslopes2022 <- Matlatesub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope)) 
+
+#subset - 
+#get rid of all DO4 for T1 and T2
+#T1 DO2 get rid of 4
+#T2 Do2 get rid of all, too messy
+#get rid of first for all
+newMTgoodlate <- MTnewslopes2022 %>%
+  filter(trial != "T1" | variable != "DO4") %>%
+  filter(trial != "T2" | variable != "DO4") %>%
+  filter(trial != "T1" | variable != "DO2" | time_code != "30_40")%>%
+  filter(trial != "T2" | variable != "DO2") %>%
+  filter(time_code != "1_10") 
+#combine with other slopes
+lateMTallslopes <- rbind(newMTgoodlate, MTgoodlate)
+
+#Bullhead Bay - T1 ch2 is control, T2 ch3 control
+BHlineearly <- allsiteslong2022 %>%
+  filter(site == "Bullhead" & month == "earlyJuly")
+BHpointearly <- subsetallsiteslong2022 %>%
+  filter(site == "Bullhead" & month == "earlyJuly")
+BHplotearly <- ggplot(BHlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = BHpointearly) +
+  facet_grid(trial~variable)
+BHplotearly
+#subset -
+#exclude all of DO3 for both trials
+#DO2 T2 too noisy to use any of this data
+#DO4 T1 exclude
+#DO4 T2 exclude round 2
+#resubset DO4 (lag)
+#exclude run 1 for rest of usable slopes
+Bullheadgood <- slopes2022 %>%
+  filter(site == "Bullhead" & month == "earlyJuly") %>%
+  filter(variable != "DO3" & variable != "DO4") %>%
+  filter(trial != "T1" | variable != "DO4") %>%
+  filter(trial != "T2" | variable != "DO2") %>%
+  filter(trial != "T2" | variable != "DO4" | time_code != "10_20") %>%
+  filter(time_code != "1_10")
+
+#resubsetting for laggy data for DO4
+BHearlysub <- allsiteslong2022 %>% 
+  filter(site == "Bullhead" & month == "earlyJuly") %>%
+  filter(variable == "DO4") %>%
+  filter(time %in% c(6.50000, 10.50000, 16.50000, 20.50000, 26.50000, 30.50000,
+                     36.50000, 40.50000, 46.50000, 50.50000, 55.50000, 60.0000 ))
+newBHplotearly <- ggplot(BHlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = BHearlysub) +
+  facet_grid(trial~variable)
+newBHplotearly
+BHnewslopes2022early <- BHearlysub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope))
+#subset - 
+#T1 keep for now but it doesn't look like much is happening here!
+#T2 exclude 1
+
+newBHgoodearly <- BHnewslopes2022early %>%
+  filter(trial != "T1" | time_code != "10_20" & time_code != "50_60") %>%
+  filter(time_code != "1_10")
+#combine with other slopes
+earlyBHallslopes <- rbind(newBHgoodearly, Bullheadgood)
+
+#Bullhead late (control T1 DO1, T2 DO4, T3 DO2)
+BHlinelate <- allsiteslong2022 %>%
+  filter(site == "Bullhead" & month == "August")
+BHpointlate <- subsetallsiteslong2022 %>%
+  filter(site == "Bullhead" & month == "August")
+BHplotlate <- ggplot(BHlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = BHpointlate) +
+  facet_grid(trial~variable) + ylim(7.5, 9)
+BHplotlate
+#T1 all good
+#T2 exclude DO4 not working 
+#T3 exclude DO4 not working, a little concerned how slight the rest of slopes are but keeping for now
+BHgoodlate <- slopes2022 %>%
+  filter(site == "Bullhead" & month == "August" ) %>%
+  filter(trial != "T2" | variable != "DO4") %>%
+  filter(trial != "T3" | variable != "DO4") %>%
+  filter(time_code != "1_10") 
+
+#NW Harbor - T1 ch4 is control, T2 ch2 control (use T1)
+NWlineearly <- allsiteslong2022 %>%
+  filter(site == "NWHarbor" & month == "earlyJuly")
+NWpointearly <- subsetallsiteslong2022 %>%
+  filter(site == "NWHarbor" & month == "earlyJuly")
+NWplotearly <- ggplot(NWlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = NWpointearly) +
+  facet_grid(trial~variable)
+NWplotearly
+#subset -
+#exclude T1 DO1 round 4
+#exclude T1 DO2
+#exclude T1 DO3
+#exclude T2 D04
+#exclude run 1 for rest of usable slopes
+NWgood <- slopes2022 %>%
+  filter(site == "NWHarbor" & month == "earlyJuly") %>%
+  filter(trial != "T1" | variable != "DO2" & variable != "DO3" ) %>%
+  filter(trial != "T1" | variable != "DO1" | time_code != "30_40" ) %>%
+  filter(trial != "T2" | variable != "DO4") %>%
+  filter(time_code != "1_10")
+#switching DO3 and DO4 label so it matches up correctly with scallops
+NWgood <- NWgood %>%
+  mutate(variable = replace(variable, trial == "T2" & variable == "DO3", "DO4"))
+
+#NW Harbor late (control T1 DO2, T2 DO4, T3 DO1) 
+NWlinelate <- allsiteslong2022 %>%
+  filter(site == "NWHarbor" & month == "August")
+NWpointlate <- subsetallsiteslong2022 %>%
+  filter(site == "NWHarbor" & month == "August")
+NWplotlate <- ggplot(NWlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = NWpointlate) +
+  facet_grid(trial~variable) + ylim(5, 9)
+NWplotlate
+#start here figure out what need to exclude
+#T1 DO2 is control, DO1 good DO4 and DO3 needs to be moved over
+#T2 DO1 all good, DO2 all good, DO3 all good
+#move all T3 back
+
+NWgoodlate <- slopes2022 %>%
+  filter(site == "NWHarbor" & month == "August" ) %>%
+  filter(trial != "T1" | variable != "DO3" & variable != "DO4") %>%
+  filter(trial != "T3") %>%
+  filter(time_code != "1_10") 
+#resubsetting for laggy data 
+NWlatesub <- allsiteslong2022 %>% 
+  filter(site == "NWHarbor" & month == "August") %>%
+  filter(trial != "T2") %>%
+  filter(trial != "T1" | variable != "DO1" & variable != "DO2") %>%
+  filter(time %in% c(7.00000, 11.00000, 17.00000, 21.00000, 27.00000, 31.00000,
+                     37.00000, 41.00000, 47.00000, 51.00000, 56.00000, 61.0000 ))
+newNWplotlate <- ggplot(NWlinelate, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = NWlatesub) +
+  facet_grid(trial~variable)
+newNWplotlate
+NWnewslopes2022 <- NWlatesub %>% 
+  group_nest(month, site, trial, variable, time_code) %>% # nest by category
+  mutate(model = map(data, fit_model)) %>% # Fit a simple linear model for each category, map applies function to each element of a list. 
+  mutate(slope = map_dbl(model, get_slope)) 
+
+#subset - 
+#get rid of first and last for all 
+newNWgoodlate <- NWnewslopes2022 %>%
+  filter(trial != "T1" | variable != "DO3") %>% 
+  filter(time_code != "1_10") %>%
+  filter(time_code != "50_60")
+#combine with other slopes
+lateNWallslopes <- rbind(newNWgoodlate, NWgoodlate)
+
+#Orient Point = T1 DO1 control, T2 DO3 is control
+OPlineearly <- allsiteslong2022 %>%
+  filter(site == "OrientPoint" & month == "earlyJuly")
+OPpointearly <- subsetallsiteslong2022 %>%
+  filter(site == "OrientPoint" & month == "earlyJuly")
+OPplotearly <- ggplot(OPlineearly, aes(time, value)) + 
+  geom_line(color = "steelblue", size = 1) + geom_point(data = OPpointearly) +
+  facet_grid(trial~variable)
+OPplotearly
+#subset -
+#T1 exclude DO2 and DO3, DO4 is good
+#T2 exluce DO3
+#exclude run 1 for rest of usable slopes
+OPgood <- slopes2022 %>%
+  filter(site == "OrientPoint" & month == "earlyJuly") %>%
+  filter(trial != "T1" | variable != "DO2" & variable != "DO3" ) %>%
+  filter(trial != "T2" | variable != "DO3") %>%
+  filter(time_code != "1_10")
+
+#next steps. 
+#subtract controls from slopes and factoring in all of the 
+#masses of animals and volumes of chambers
+
+#go to "adjusting_slopes3.R"
